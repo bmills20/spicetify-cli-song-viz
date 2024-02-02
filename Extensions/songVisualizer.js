@@ -1,8 +1,8 @@
 //@ts-check
 
 // NAME: SongAudioAnalysis
-// AUTHOR: CharlieS1103
-// DESCRIPTION: View a songs stats, such as danceability and acousticness.
+// AUTHOR: bmills20
+// DESCRIPTION: Visualize a song's stats, such as danceability and acousticness, via a radar graph.
 
 /// <reference path="../../spicetify-cli/globals.d.ts" />
 
@@ -146,12 +146,11 @@
     "tempo",
   ];
 
-  //Watch for when the song is changed
+  const angleSliceRadians = (2 * Math.PI) / features.length;
+  const radius = 80;
+  const labelRadius = radius;
 
   async function getSongStats(uris) {
-    let radarPath = {};
-    let points = { x: 0, y: 0 };
-    var request = new XMLHttpRequest();
     const uri = uris[0];
     const uriObj = Spicetify.URI.fromString(uri);
     const uriFinal = uri.split(":")[2];
@@ -177,26 +176,31 @@
       .map((point, i) => {
         const feature = features[i];
         const label = feature.charAt(0).toUpperCase() + feature.slice(1);
+        const angle = angleSliceRadians * i;
+        const labelPoint = {
+          x: Math.cos(angle - Math.PI / 2) * labelRadius,
+          y: Math.sin(angle - Math.PI / 2) * labelRadius,
+        };
         return `
-              <line
-                  x1="0"
-                  y1="0"
-                  x2="${point.x}"
-                  y2="${point.y}"
-                  stroke="rgba(136, 132, 216, 0.8)"
-                  stroke-width="1"
-              />
-              <text
-                  x="${point.x + 10}"
-                  y="${point.y}"
-                  fill="rgba(136, 132, 216, 0.8)"
-                  font-size="12"
-                  text-anchor="middle"
-                  alignment-baseline="middle"
-              >
-                  ${label}
-              </text>
-          `;
+          <line
+            x1="0"
+            y1="0"
+            x2="${point.x}"
+            y2="${point.y}"
+            stroke="rgba(136, 132, 216, 0.8)"
+            stroke-width="1"
+          />
+          <text
+            x="${labelPoint.x}"
+            y="${labelPoint.y}"
+            fill="rgba(136, 132, 216, 0.8)"
+            font-size="6"
+            text-anchor="middle"
+            alignment-baseline="middle"
+          >
+            ${label}
+          </text>
+        `;
       })
       .join("");
     if (radarChart && radarChart.radarPath && radarChart.points) {
@@ -204,51 +208,45 @@
         title: `${titletxt}`,
         isLarge: true,
         content: `
-          <style>
-              .stats-table {
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  width: 100%;
-                  height: 100%;
-                  border-collapse: collapse;
-                  background: var(--spice-background);
-              }
-              .stats-cell {
-                  display: table-cell;
-                  padding: 2px;
-                  font-weight: 550;
-                  color: var(--spice-text);
-              }
-              .stats-cell:nth-child(even) {
-                  font-weight: 400;
-              }
-          </style>
-          <div class="stats-table">
-              <svg width="90%" height="90%" viewBox="-110 -110 220 220">
-                  <path
-                      d="${radarChart.radarPath}"
-                      fill="rgba(136, 132, 216, 0.7)"
-                      stroke="rgba(136, 132, 216, 0.8)"
-                      stroke-width="2"
-                  />
-                  ${axes}
-              </svg>
-          </div>
-      `,
+                    <style>
+                            .stats-table {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    width: 100%;
+                                    height: 100%;
+                                    border-collapse: collapse;
+                                    background: var(--spice-background);
+                            }
+                            .stats-cell {
+                                    display: table-cell;
+                                    padding: 2px;
+                                    font-weight: 550;
+                                    color: var(--spice-text);
+                            }
+                            .stats-cell:nth-child(even) {
+                                    font-weight: 400;
+                            }
+                    </style>
+                    <div class="stats-table">
+                            <svg width="90%" height="90%" viewBox="-110 -110 220 220">
+                                    <path
+                                            d="${radarChart.radarPath}"
+                                            fill="rgba(136, 132, 216, 0.7)"
+                                            stroke="rgba(136, 132, 216, 0.8)"
+                                            stroke-width="2"
+                                    />
+                                    ${axes}
+                            </svg>
+                    </div>
+            `,
       });
     }
   }
 
   async function RadarChart(data) {
-    console.log(data);
-
-    const angleSliceRadians = (2 * Math.PI) / features.length;
-    const radius = 100;
-
     // Normalize the "ness" values and similar measures
     const normalizedData = features.map((feature) => {
-      console.log(feature);
       let value = data[feature];
       if (feature === "loudness") {
         // Normalize loudness (usually between -60 and 0) to 0-1
